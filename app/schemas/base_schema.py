@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from decimal import Decimal
 from datetime import datetime
 from typing import List, Generic, TypeVar
 

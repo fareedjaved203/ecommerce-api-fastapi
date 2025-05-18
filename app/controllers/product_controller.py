@@ -1,11 +1,11 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-from uuid import UUID
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func
 
 from ..models.product_model import Product
 from ..schemas.product_schema import ProductCreate, ProductUpdate, ProductOut
+from ..schemas.category_schema import CategoryOut
 from ..schemas.base_schema import PaginatedResponse
 from ..utils.response_wrapper import APIResponse
 
@@ -23,26 +23,33 @@ def get_all_products(
             limit = 100
             
         skip = (page - 1) * limit
-        query = db.query(Product)
+        
+        query = db.query(Product).options(joinedload(Product.category))
         
         if search:
             query = query.filter(func.lower(Product.name).contains(func.lower(search)))
         if category_id:
             query = query.filter(Product.category_id == category_id)
         
+        count_query = query.with_entities(func.count(Product.id))
+        total_count = count_query.scalar()
+        
         products = query.offset(skip).limit(limit).all()
-        total_count = query.with_entities(func.count(Product.id)).scalar()
-        page_count = max(1, (total_count + limit - 1) // limit)
         
         product_data = []
         for product in products:
             product_dict = ProductOut.model_validate(product).model_dump()
+            
             if product.category:
-                product_dict['category'] = {
+                product_dict['category'] = CategoryOut.model_validate({
                     'id': product.category.id,
-                    'name': product.category.name
-                }
+                    'name': product.category.name,
+                    'sku': product.category.sku
+                }).model_dump()
+            
             product_data.append(product_dict)
+        
+        page_count = max(1, (total_count + limit - 1) // limit)
         
         response_data = PaginatedResponse[ProductOut](
             items=product_data,
@@ -86,10 +93,21 @@ def get_product(product_id: str, db: Session):
 
 def create_product(payload: ProductCreate, db: Session):
     try:
+        existing_product = db.query(Product).filter(
+            (func.lower(Product.name) == func.lower(payload.name)) |
+            (func.lower(Product.sku) == func.lower(payload.sku))
+        ).first()
+                
+        if existing_product:
+            raise HTTPException(
+                status_code=409,
+                detail="Product with this name or sku already exists"
+            )
         product = Product(**payload.model_dump())
         db.add(product)
         db.commit()
         db.refresh(product)
+        
         product_response = ProductOut.model_validate(product)
         return APIResponse[ProductOut](
             status=True,
@@ -97,14 +115,35 @@ def create_product(payload: ProductCreate, db: Session):
             data=product_response,
             error=None
         )
+        
+    except HTTPException:
+        raise
+        
+    except IntegrityError as e:
+        db.rollback()
+        if "Duplicate entry" in str(e.orig):
+            raise HTTPException(
+                status_code=409,
+                detail="Product with this name already exists"
+            )
+        raise HTTPException(
+            status_code=400,
+            detail="Database integrity error"
+        )
+        
     except SQLAlchemyError as e:
         db.rollback()
-        print("Database error:", e)
-        raise HTTPException(status_code=500, detail="Error creating product")
+        raise HTTPException(
+            status_code=500,
+            detail="Database error: " + str(e)
+        )
+        
     except Exception as e:
         db.rollback()
-        print("Unexpected error:", e)
-        raise HTTPException(status_code=500, detail="Something went wrong")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 def update_product(product_id: str, payload: ProductUpdate, db: Session):

@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, ForeignKey, Numeric, Index, CheckConstraint
+from sqlalchemy.orm import relationship
 from ..db.database import Base
 from ..mixins.incremental_id_mixin import IncrementalIDMixin
 from ..mixins.timestamp_mixin import TimestampMixin
@@ -17,6 +18,7 @@ class Inventory(IncrementalIDMixin, TimestampMixin, Base):
     )
 
     product_id = Column(String(36), ForeignKey("products.id"), nullable=False, index=True)
+    product = relationship("Product", back_populates="inventories")
     quantity_changed = Column(Numeric(5, 0), default=0)
     quantity_before = Column(Numeric(5, 0))
     quantity_after = Column(Numeric(5, 0))
