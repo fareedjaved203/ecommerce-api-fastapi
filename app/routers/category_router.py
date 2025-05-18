@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Annotated, List
-from uuid import UUID
 
 from ..db.database import get_db
 from ..utils.response_wrapper import APIResponse
 from ..schemas.category_schema import CategoryCreate, CategoryUpdate, CategoryOut
+from ..schemas.base_schema import PaginatedResponse
 from ..controllers.category_controller import (
     list_categories,
     retrieve_category,
@@ -18,9 +18,14 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
-@router.get("/", response_model=APIResponse[List[CategoryOut]])
-def get_all_categories(db: db_dependency):
-    return list_categories(db)
+@router.get("/", response_model=APIResponse[PaginatedResponse[CategoryOut]])
+def get_categories(
+    page: int = 1,
+    limit: int = 100,
+    search: str = "",
+    db: Session = Depends(get_db)
+):
+    return list_categories(db, page=page, limit=limit, search=search)
 
 
 @router.get("/{category_id}", response_model=APIResponse[CategoryOut])

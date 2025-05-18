@@ -6,15 +6,28 @@ from typing import Annotated, List
 from ..utils.response_wrapper import APIResponse
 from ..db.database import get_db
 from ..schemas.product_schema import ProductCreate, ProductUpdate, ProductOut
+from ..schemas.base_schema import PaginatedResponse
 from ..controllers import product_controller
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
-@router.get("/",response_model=APIResponse[List[ProductOut]])
-def list_products(db: db_dependency):
-    return product_controller.get_all_products(db)
+@router.get("/", response_model=APIResponse[PaginatedResponse[ProductOut]])
+def list_products(
+    page: int = 1,
+    limit: int = 100,
+    search: str = "",
+    category_id: str | None = None,
+    db: Session = Depends(get_db)
+):
+    return product_controller.get_all_products(
+        db,
+        page=page,
+        limit=limit,
+        search=search,
+        category_id=category_id
+    )
 
 @router.get("/{product_id}", response_model=APIResponse[ProductOut])
 def retrieve_product(product_id: str, db: db_dependency):

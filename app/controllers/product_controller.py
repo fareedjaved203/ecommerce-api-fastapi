@@ -2,20 +2,73 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
 
 from ..models.product_model import Product
 from ..schemas.product_schema import ProductCreate, ProductUpdate, ProductOut
+from ..schemas.base_schema import PaginatedResponse
 from ..utils.response_wrapper import APIResponse
 
-def get_all_products(db: Session):
-    products = db.query(Product).all()
-    product_response = [ProductOut.model_validate(p).model_dump() for p in products]
-    return APIResponse[list[ProductOut]](
-        status=True,
-        message="Products retrieved successfully",
-        data=product_response,
-        error=None
-    )
+def get_all_products(
+    db: Session,
+    page: int = 1,
+    limit: int = 100,
+    search: str = "",
+    category_id: str | None = None
+) -> APIResponse[PaginatedResponse[ProductOut]]:
+    try:
+        if page < 1:
+            page = 1
+        if limit < 1:
+            limit = 100
+            
+        skip = (page - 1) * limit
+        query = db.query(Product)
+        
+        if search:
+            query = query.filter(func.lower(Product.name).contains(func.lower(search)))
+        if category_id:
+            query = query.filter(Product.category_id == category_id)
+        
+        products = query.offset(skip).limit(limit).all()
+        total_count = query.with_entities(func.count(Product.id)).scalar()
+        page_count = max(1, (total_count + limit - 1) // limit)
+        
+        product_data = []
+        for product in products:
+            product_dict = ProductOut.model_validate(product).model_dump()
+            if product.category:
+                product_dict['category'] = {
+                    'id': product.category.id,
+                    'name': product.category.name
+                }
+            product_data.append(product_dict)
+        
+        response_data = PaginatedResponse[ProductOut](
+            items=product_data,
+            pagination={
+                "total_items": total_count,
+                "total_pages": page_count,
+                "current_page": page,
+                "page_size": limit,
+                "items_on_page": len(products),
+                "has_next": (page * limit) < total_count,
+                "has_previous": page > 1
+            }
+        )
+        
+        return APIResponse[PaginatedResponse[ProductOut]](
+            status=True,
+            message="Products retrieved successfully",
+            data=response_data,
+            error=None
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving products: {str(e)}"
+        )
 
 
 def get_product(product_id: str, db: Session):
