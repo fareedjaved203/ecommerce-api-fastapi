@@ -1,9 +1,9 @@
 from sqlalchemy import Column, String, ForeignKey, Numeric, JSON, CheckConstraint
 from ..db.database import Base
-from ..mixins.uuid_mixin import UUIDBinaryMixin
+from ..mixins.uuid_mixin import UUIDStringMixin
 from ..mixins.timestamp_mixin import TimestampMixin
 
-class Product(UUIDBinaryMixin, TimestampMixin, Base):
+class Product(UUIDStringMixin, TimestampMixin, Base):
     __tablename__ = "products"
     __table_args__ = (
         CheckConstraint("price >= 0", name="ck_price_non_negative"),

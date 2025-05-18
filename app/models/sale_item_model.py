@@ -1,5 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Numeric, CheckConstraint
-from sqlalchemy.dialects.mysql import CHAR
+from sqlalchemy import Column, ForeignKey, Numeric, CheckConstraint, String, Integer
 from ..db.database import Base
 from ..mixins.incremental_id_mixin import IncrementalIDMixin
 from ..mixins.timestamp_mixin import TimestampMixin
@@ -16,8 +15,8 @@ class SaleItem(IncrementalIDMixin, TimestampMixin, Base):
         CheckConstraint("total_price <= 999989000.01", name="ck_total_price_max"),
     )
 
-    product_id = Column(CHAR(36), ForeignKey("products.id"), nullable=False, index=True)
-    sales_id = Column(CHAR(36), ForeignKey("sales.id"), nullable=False, index=True)
+    product_id = Column(String(36), ForeignKey("products.id"), nullable=False, index=True)
+    sales_id = Column(Integer, ForeignKey("sales.id"), nullable=False, index=True)
     quantity = Column(Numeric(5, 0), nullable=False)
     per_item_price = Column(Numeric(6,2), nullable=False)
     total_price = Column(Numeric(11,2), nullable=False)

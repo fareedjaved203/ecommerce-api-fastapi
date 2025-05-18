@@ -1,9 +1,9 @@
 from sqlalchemy import Column, String
 from ..db.database import Base
-from ..mixins.uuid_mixin import UUIDBinaryMixin
+from ..mixins.uuid_mixin import UUIDStringMixin
 from ..mixins.timestamp_mixin import TimestampMixin
 
-class Category(UUIDBinaryMixin, TimestampMixin, Base):
+class Category(UUIDStringMixin, TimestampMixin, Base):
     __tablename__ = "categories"
 
     name = Column(String(100), unique=True, nullable=False, index=True)

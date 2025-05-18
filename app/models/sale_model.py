@@ -1,9 +1,9 @@
-from sqlalchemy import Column, Numeric, ForeignKey, String, Index, CheckConstraint
+from sqlalchemy import Column, Numeric, ForeignKey, Integer, Index, CheckConstraint
 from ..db.database import Base
-from ..mixins.uuid_mixin import UUIDBinaryMixin
+from ..mixins.incremental_id_mixin import IncrementalIDMixin
 from ..mixins.timestamp_mixin import TimestampMixin
 
-class Sale(UUIDBinaryMixin, TimestampMixin, Base):
+class Sale(IncrementalIDMixin, TimestampMixin, Base):
     __tablename__ = "sales"
     __table_args__ = (
         Index("idx_sales_created_at", "updated_at"),
@@ -12,4 +12,4 @@ class Sale(UUIDBinaryMixin, TimestampMixin, Base):
     )
 
     total_amount = Column(Numeric(14,2), nullable=False)
-    platform_id = Column(String(36), ForeignKey("platforms.id"), nullable=False)
+    platform_id = Column(Integer, ForeignKey("platforms.id"), nullable=False)
