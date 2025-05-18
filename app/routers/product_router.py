@@ -18,7 +18,7 @@ def list_products(db: db_dependency):
 
 @router.get("/{product_id}", response_model=APIResponse[ProductOut])
 def retrieve_product(product_id: str, db: db_dependency):
-    return product_controller.get_product(UUID(product_id), db)
+    return product_controller.get_product(product_id, db)
 
 @router.post("/", response_model=APIResponse[ProductOut])
 def create_product(payload: ProductCreate, db: db_dependency):
@@ -26,8 +26,8 @@ def create_product(payload: ProductCreate, db: db_dependency):
 
 @router.put("/{product_id}", response_model=APIResponse[ProductOut])
 def update_product(product_id: str, payload: ProductUpdate, db: db_dependency):
-    return product_controller.update_product(UUID(product_id), payload, db)
+    return product_controller.update_product(product_id, payload, db)
 
 @router.delete("/{product_id}")
 def delete_product(product_id: str, db: db_dependency):
-    return product_controller.delete_product(UUID(product_id), db)
+    return product_controller.delete_product(product_id, db)

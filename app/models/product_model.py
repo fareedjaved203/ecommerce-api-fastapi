@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, Numeric, JSON, CheckConstraint
+from sqlalchemy import Column, String, ForeignKey, Numeric, CheckConstraint, Boolean
 from ..db.database import Base
 from ..mixins.uuid_mixin import UUIDStringMixin
 from ..mixins.timestamp_mixin import TimestampMixin
@@ -14,5 +14,5 @@ class Product(UUIDStringMixin, TimestampMixin, Base):
     category_id = Column(String(36), ForeignKey("categories.id"), nullable=False, index=True)
     description = Column(String(300), nullable=True)
     sku = Column(String(20), unique=True, nullable=False)
-    price = Column(Numeric(4, 2), nullable=False)    
-    images =  Column(JSON, nullable=True)
+    price = Column(Numeric(4, 2), nullable=False)
+    published = Column(Boolean, default=False, nullable=False)

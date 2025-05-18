@@ -1,5 +1,5 @@
 from pydantic import BaseModel, condecimal
-from typing import Optional, List, Annotated
+from typing import Optional, Annotated
 from .base_schema import BaseSchema
 
 Decimal6_2 = Annotated[condecimal(max_digits=6, decimal_places=2), ...]
@@ -10,8 +10,7 @@ class ProductBase(BaseModel):
     description: Optional[str] = None
     sku: str
     price: Decimal6_2
-    images: Optional[List[str]] = None
-
+    published: bool = False
 class ProductCreate(ProductBase):
     pass
 

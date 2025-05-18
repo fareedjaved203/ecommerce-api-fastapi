@@ -18,8 +18,8 @@ def get_all_products(db: Session):
     )
 
 
-def get_product(product_id: UUID, db: Session):
-    product = db.query(Product).filter(Product.id == product_id).first()
+def get_product(product_id: str, db: Session):
+    product = db.query(Product).filter(Product.id == product_id.strip()).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     product_response = ProductOut.model_validate(product)
@@ -54,7 +54,7 @@ def create_product(payload: ProductCreate, db: Session):
         raise HTTPException(status_code=500, detail="Something went wrong")
 
 
-def update_product(product_id: UUID, payload: ProductUpdate, db: Session):
+def update_product(product_id: str, payload: ProductUpdate, db: Session):
     try:
         product = db.query(Product).filter(Product.id == product_id).first()
         if not product:
@@ -81,7 +81,7 @@ def update_product(product_id: UUID, payload: ProductUpdate, db: Session):
         raise HTTPException(status_code=500, detail="Something went wrong")
 
 
-def delete_product(product_id: UUID, db: Session):
+def delete_product(product_id: str, db: Session):
     try:
         product = db.query(Product).filter(Product.id == product_id).first()
         if not product:
