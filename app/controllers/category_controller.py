@@ -1,19 +1,21 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..schemas.category_schema import CategoryCreate, CategoryUpdate, CategoryOut
+from ..schemas.category_schema import CategoryCreate, CategoryUpdate
 from ..models.category_model import Category
+from ..utils.response_wrapper import api_response
 
 
 def list_categories(db: Session):
-    return db.query(Category).all()
+    categories = db.query(Category).all()
+    return api_response(data=categories)
 
 
 def retrieve_category(category_id: str, db: Session):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-    return category
+    return api_response(data=category)
 
 
 def create_category(payload: CategoryCreate, db: Session):
@@ -21,7 +23,7 @@ def create_category(payload: CategoryCreate, db: Session):
     db.add(category)
     db.commit()
     db.refresh(category)
-    return category
+    return api_response(data=category, message="Category created successfully")
 
 
 def update_category(category_id: str, payload: CategoryUpdate, db: Session):
@@ -34,7 +36,7 @@ def update_category(category_id: str, payload: CategoryUpdate, db: Session):
 
     db.commit()
     db.refresh(category)
-    return category
+    return api_response(data=category, message="Category updated successfully")
 
 
 def delete_category(category_id: str, db: Session):
@@ -44,4 +46,4 @@ def delete_category(category_id: str, db: Session):
 
     db.delete(category)
     db.commit()
-    return {"detail": "Category deleted"}
+    return api_response(message="Category deleted successfully")
