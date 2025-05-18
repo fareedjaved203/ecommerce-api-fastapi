@@ -8,7 +8,7 @@ def get_all_products(db: Session):
     return db.query(Product).all()
 
 def get_product(product_id: UUID, db: Session):
-    product = db.query(Product).filter(Product._id == product_id).first()
+    product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
