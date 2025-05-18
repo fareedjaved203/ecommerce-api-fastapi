@@ -1,7 +1,6 @@
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..db.database import get_db
 from ..schemas.category_schema import CategoryCreate, CategoryUpdate, CategoryOut
 from ..models.category_model import Category
 
@@ -18,7 +17,7 @@ def retrieve_category(category_id: str, db: Session):
 
 
 def create_category(payload: CategoryCreate, db: Session):
-    category = Category(**payload.dict())
+    category = Category(**payload.model_dump())
     db.add(category)
     db.commit()
     db.refresh(category)
@@ -30,7 +29,7 @@ def update_category(category_id: str, payload: CategoryUpdate, db: Session):
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    for key, value in payload.dict(exclude_unset=True).items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(category, key, value)
 
     db.commit()

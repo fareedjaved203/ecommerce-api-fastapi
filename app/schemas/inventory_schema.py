@@ -3,14 +3,15 @@ from typing import Optional, Annotated
 from decimal import Decimal
 from .base_schema import BaseSchema
 
-Decimal10_2 = Annotated[condecimal(max_digits=10, decimal_places=2), ...]
+Numeric5 = Annotated[condecimal(max_digits=5, decimal_places=0), ...]
+ThresholdNumeric = Annotated[condecimal(max_digits=3, decimal_places=0), ...]
 
 class InventoryBase(BaseModel):
     product_id: str
-    quantity_changed: Decimal10_2 = Decimal('0')
-    quantity_before: Optional[Decimal10_2] = None
-    quantity_after: Optional[Decimal10_2] = None
-    quantity_changed: Decimal10_2 = Decimal('5')
+    quantity_changed: Numeric5 = Decimal('0')
+    quantity_before: Optional[Numeric5] = None
+    quantity_after: Optional[Numeric5] = None
+    threshold: ThresholdNumeric = Decimal('5')
     reason: Optional[str] = None
 
 class InventoryCreate(InventoryBase):

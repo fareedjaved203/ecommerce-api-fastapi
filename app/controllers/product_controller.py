@@ -14,7 +14,7 @@ def get_product(product_id: UUID, db: Session):
     return product
 
 def create_product(payload: ProductCreate, db: Session):
-    product = Product(**payload.dict())
+    product = Product(**payload.model_dump())
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -22,7 +22,7 @@ def create_product(payload: ProductCreate, db: Session):
 
 def update_product(product_id: UUID, payload: ProductUpdate, db: Session):
     product = get_product(product_id, db)
-    for field, value in payload.dict(exclude_unset=True).items():
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
     db.commit()
     db.refresh(product)
