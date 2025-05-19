@@ -98,21 +98,126 @@ alembic upgrade head
 
 8. Start the development server
 ```
-uvicorn app.main:app --reload
+uvicorn app.main:app --port 5000
 ```
-## API ENDPOINTS
+## API Endpoints
 
-### PRODUCT
+Base URL: `/`
 
-GET /categories/ – Retrieve all categories
+---
 
-POST /products/ – Add a new product
+### Categories
 
-GET /inventory/status – Check current inventory and low stock alerts
+- **GET** `/api/v1/categories/`  
+  Retrieve all categories.
 
-GET /sales/compare – Compare sales across products, dates, or categories
+- **POST** `/api/v1/categories/`  
+  Create a new category.
 
-GET /revenue/summary – Get revenue breakdown by time period
+- **GET** `/api/v1/categories/{category_id}`  
+  Retrieve a category by its ID.
+
+- **PUT** `/api/v1/categories/{category_id}`  
+  Update an existing category by ID.
+
+- **DELETE** `/api/v1/categories/{category_id}`  
+  Delete a category by ID.
+
+---
+
+### Products
+
+- **GET** `/api/v1/products/`  
+  List all products.
+
+- **POST** `/api/v1/products/`  
+  Create a new product.
+
+- **GET** `/api/v1/products/{product_id}`  
+  Retrieve a product by ID.
+
+- **PUT** `/api/v1/products/{product_id}`  
+  Update an existing product by ID.
+
+- **DELETE** `/api/v1/products/{product_id}`  
+  Delete a product by ID.
+
+---
+
+### Platforms
+
+- **GET** `/api/v1/platforms/`  
+  List all platforms.
+
+- **GET** `/api/v1/platforms/{platform_id}`  
+  Retrieve a platform by ID.
+
+- **PUT** `/api/v1/platforms/{platform_id}`  
+  Update an existing platform by ID.
+
+- **DELETE** `/api/v1/platforms/{platform_id}`  
+  Delete a platform by ID.
+
+---
+
+### Inventory
+
+- **PUT** `/api/v1/inventory/product/{product_id}`  
+  Create or update inventory for a specific product.
+
+- **GET** `/api/v1/inventory/product/{product_id}`  
+  Retrieve complete inventory history for a product with low stock alerts(boolean).
+
+---
+
+### Orders
+
+- **POST** `/api/v1/orders/`  
+  Place a new order.
+
+---
+
+### Revenue
+
+- **GET** `/api/v1/revenue/daily`  
+  Get daily revenue summary.
+
+- **GET** `/api/v1/revenue/weekly`  
+  Get weekly revenue summary.
+
+- **GET** `/api/v1/revenue/monthly`  
+  Get monthly revenue summary.
+
+- **GET** `/api/v1/revenue/annual`  
+  Get annual revenue summary.
+
+- **GET** `/api/v1/revenue/custom`  
+  Get revenue data for a custom date range.
+
+- **POST** `/api/v1/revenue/compare`  
+  Compare revenue for different dates (more than 2).
+
+- **POST** `/api/v1/revenue/compare-by-category`  
+  Compare revenue across categories (more than 2).
+
+---
+
+### Additional Endpoints
+
+- **GET** `/categories/`  
+  Retrieve all categories (duplicate legacy route).
+
+- **POST** `/products/`  
+  Add a new product (duplicate legacy route).
+
+- **GET** `/inventory/status`  
+  Check current inventory and low stock alerts.
+
+- **GET** `/sales/compare`  
+  Compare sales across products, dates, or categories.
+
+- **GET** `/revenue/summary`  
+  Get revenue breakdown by time period.
 
 
 ## API Documentation:
