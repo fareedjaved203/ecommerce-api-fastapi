@@ -24,7 +24,7 @@ def get_daily_revenue() -> Decimal:
 
 def get_weekly_revenue() -> Decimal:
     today = datetime.utcnow().date()
-    start = today - timedelta(days=today.weekday())  # Monday
+    start = today - timedelta(days=today.weekday())
     end = start + timedelta(days=7)
     return get_revenue(datetime.combine(start, datetime.min.time()), datetime.combine(end, datetime.min.time()))
 
@@ -105,7 +105,6 @@ def get_revenue_for_categories_periods(
                 .filter(Category.name.in_(categories))
             )
 
-            # Apply date filters only if the dates are not None
             if start_date is not None:
                 query = query.filter(Sale.sale_date >= start_date)
             if end_date is not None:

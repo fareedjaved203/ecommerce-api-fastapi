@@ -203,7 +203,6 @@ def seed_orders():
 
         try:
             create_order(db, order_data)
-            print(f"Order placed: product={product.name} platform={platform.name} quantity={quantity}")
         except Exception as e:
             print(f"Failed to create order: {e}")
     
