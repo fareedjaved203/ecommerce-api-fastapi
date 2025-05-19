@@ -212,24 +212,6 @@ Base URL: `/`
 
 ---
 
-### Additional Endpoints
-
-- **GET** `/categories/`  
-  Retrieve all categories (duplicate legacy route).
-
-- **POST** `/products/`  
-  Add a new product (duplicate legacy route).
-
-- **GET** `/inventory/status`  
-  Check current inventory and low stock alerts.
-
-- **GET** `/sales/compare`  
-  Compare sales across products, dates, or categories.
-
-- **GET** `/revenue/summary`  
-  Get revenue breakdown by time period.
-
-
 ## API Documentation:
 
 http://localhost:8000/docs
