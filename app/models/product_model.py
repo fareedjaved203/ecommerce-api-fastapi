@@ -20,3 +20,4 @@ class Product(UUIDStringMixin, TimestampMixin, Base):
     
     category = relationship("Category", back_populates="products")
     inventories = relationship("Inventory", back_populates="product")
+    sale_items = relationship("SaleItem", back_populates="product")

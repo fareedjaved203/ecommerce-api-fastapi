@@ -12,7 +12,6 @@ class ProductBase(BaseModel):
     sku: str
     price: Decimal6_2
     published: bool = False
-    category: CategoryOut | None = None
 class ProductCreate(ProductBase):
     pass
 
@@ -21,3 +20,4 @@ class ProductUpdate(ProductBase):
 
 class ProductOut(ProductBase, BaseSchema):
     id: str
+    category: CategoryOut | None = None

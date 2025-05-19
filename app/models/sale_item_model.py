@@ -1,4 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Numeric, CheckConstraint, String, Integer
+from sqlalchemy.orm import relationship
 from ..db.database import Base
 from ..mixins.incremental_id_mixin import IncrementalIDMixin
 from ..mixins.timestamp_mixin import TimestampMixin
@@ -20,3 +21,6 @@ class SaleItem(IncrementalIDMixin, TimestampMixin, Base):
     quantity = Column(Numeric(5, 0), nullable=False)
     per_item_price = Column(Numeric(6,2), nullable=False)
     total_price = Column(Numeric(11,2), nullable=False)
+    
+    sale = relationship("Sale", back_populates="items")
+    product = relationship("Product", back_populates="sale_items") 

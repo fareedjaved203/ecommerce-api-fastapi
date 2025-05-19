@@ -1,23 +1,49 @@
-from pydantic import BaseModel, condecimal
-from .base_schema import BaseSchema
-from typing import Annotated
-
-Decimal11_2 = Annotated[condecimal(max_digits=11, decimal_places=2), ...]
-Decimal6_2 = Annotated[condecimal(max_digits=6, decimal_places=2), ...]
-Decimal5_0 = Annotated[condecimal(max_digits=5, decimal_places=0), ...]
-
-class SaleItemBase(BaseModel):
+from decimal import Decimal
+from datetime import datetime
+from .base_schema import BaseModel
+from typing import Optional, List
+from pydantic import BaseModel, ConfigDict, field_validator
+class SaleItemIn(BaseModel):
     product_id: str
-    sales_id: str
-    quantity: Decimal5_0
-    per_item_price: Decimal6_2
-    total_price: Decimal11_2
+    quantity: int
 
-class SaleItemCreate(SaleItemBase):
-    pass
+class SaleIn(BaseModel):
+    platform_id: int
+    items: List[SaleItemIn]
+    sale_date: Optional[datetime] = None
 
-class SaleItemUpdate(SaleItemBase):
-    pass
+class SaleItemOut(BaseModel):
+    product_id: str
+    quantity: int
+    per_item_price: Decimal
+    total_price: Decimal
 
-class SaleItemOut(SaleItemBase, BaseSchema):
+class SaleOut(BaseModel):
     id: int
+    platform_id: int
+    total_amount: Decimal
+    sale_date: datetime
+    items: List[SaleItemOut] = []
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            Decimal: lambda v: str(v)
+        }
+
+class RevenueOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: lambda v: str(v)})
+
+    type: str
+    amount: Decimal
+    
+class Period(BaseModel):
+    start_date: datetime
+    end_date: datetime
+
+class CompareRevenueIn(BaseModel):
+    periods: List[Period]
+    
+class CompareRevenueByCategoryIn(BaseModel):
+    categories: List[str]
+    periods: List[Period]

@@ -5,9 +5,8 @@ from ..utils.response_wrapper import APIResponse
 from ..models.inventory_model import Inventory
 from ..models.product_model import Product
 from ..schemas.inventory_schema import InventoryCreate, InventoryUpdate, InventoryOut
-from ..schemas.product_schema import ProductOut
+from ..schemas.base_schema import PaginatedResponse
 from decimal import Decimal
-from typing import Dict, Any
 
 def create_inventory(db: Session, inventory: InventoryCreate):
     try:
@@ -55,7 +54,7 @@ def create_inventory(db: Session, inventory: InventoryCreate):
         )
 
 def update_inventory_by_product(
-    db: Session, 
+    db: Session,
     product_id: str,
     inventory_update: InventoryUpdate
 ) -> APIResponse[InventoryOut]:
@@ -64,77 +63,101 @@ def update_inventory_by_product(
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        inventory = db.query(Inventory)\
+        last_inventory = db.query(Inventory)\
             .filter(Inventory.product_id == product_id)\
             .order_by(Inventory.created_at.desc())\
             .first()
-            
-        if not inventory:
-            raise HTTPException(status_code=404, detail="No inventory record found")
 
-        current_alert_status = inventory.quantity_after <= inventory.threshold
+        current_qty = last_inventory.quantity_after if last_inventory else Decimal(0)
+        new_qty = current_qty + inventory_update.quantity_changed
+        threshold = inventory_update.threshold or (
+            last_inventory.threshold if last_inventory else Decimal(10)
+        )
 
-        update_data = inventory_update.model_dump(exclude_unset=True)
-        
-        if 'quantity_changed' in update_data:
-            inventory.quantity_before = inventory.quantity_after
-            inventory.quantity_after += update_data['quantity_changed']
-            inventory.quantity_changed = update_data['quantity_changed']
-        
-        if 'threshold' in update_data:
-            inventory.threshold = update_data['threshold']
-            
-        if 'reason' in update_data:
-            inventory.reason = update_data['reason']
+        new_inventory = Inventory(
+            product_id=product_id,
+            quantity_before=current_qty,
+            quantity_after=new_qty,
+            quantity_changed=inventory_update.quantity_changed,
+            threshold=threshold,
+            reason=inventory_update.reason or "Stock adjustment",
+        )
 
-        new_alert_status = inventory.quantity_after <= inventory.threshold
-        
-        if bool(current_alert_status) != bool(new_alert_status):
-            inventory.alert = new_alert_status
-
+        db.add(new_inventory)
         db.commit()
-        db.refresh(inventory)
-
-        response_data = InventoryOut.model_validate(inventory)
-        response_data.alert = bool(new_alert_status)
+        db.refresh(new_inventory)
 
         return APIResponse[InventoryOut](
             status=True,
             message="Inventory updated successfully",
-            data=response_data,
+            data=InventoryOut.model_validate(new_inventory),
             error=None
         )
 
     except SQLAlchemyError as e:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-def get_product_inventory(db: Session, product_id: str):
+def get_product_inventory_history(
+    db: Session,
+    product_id: str,
+    page: int = 1,
+    limit: int = 100
+) -> APIResponse[PaginatedResponse[InventoryOut]]:
     try:
-        inventory = db.query(Inventory)\
+        page = max(1, page)
+        limit = max(1, min(limit, 1000))
+        offset = (page - 1) * limit
+
+        query = db.query(Inventory)\
             .options(joinedload(Inventory.product))\
             .filter(Inventory.product_id == product_id)\
-            .order_by(Inventory.created_at.desc())\
-            .first()
+            .order_by(Inventory.created_at.desc())
 
-        if not inventory:
+        total_count = query.count()
+
+        history = query.offset(offset).limit(limit).all()
+
+        if not history:
             raise HTTPException(status_code=404, detail="No inventory records found")
 
-        response_data = InventoryOut.model_validate({
-            **inventory.__dict__,
-            "product": inventory.product,
-            "alert": inventory.quantity_after <= inventory.threshold
-        })
+        items = []
+        for record in history:
+            item_data = InventoryOut.model_validate({
+                **record.__dict__,
+                "product": {
+                    "id": record.product.id,
+                    "name": record.product.name,
+                    "sku": record.product.sku,
+                    "price": record.product.price,
+                    "category_id": record.product.category_id,
+                },
+                "alert": record.quantity_after <= record.threshold
+            })
+            items.append(item_data)
 
-        return APIResponse[InventoryOut](
+        pagination = {
+            "total_items": total_count,
+            "total_pages": (total_count + limit - 1) // limit,
+            "current_page": page,
+            "page_size": limit,
+            "items_on_page": len(items),
+            "has_next": (page * limit) < total_count,
+            "has_previous": page > 1
+        }
+
+        return APIResponse[PaginatedResponse[InventoryOut]](
             status=True,
-            message="Inventory retrieved successfully",
-            data=response_data,
+            message="Inventory history retrieved successfully",
+            data=PaginatedResponse[InventoryOut](
+                items=items,
+                pagination=pagination
+            ),
             error=None
         )
 
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )

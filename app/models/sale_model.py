@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Numeric, ForeignKey, Integer, Index, CheckConstraint
+from sqlalchemy import Column, Numeric, ForeignKey, Integer, Index, CheckConstraint, DateTime
+from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+
 from ..db.database import Base
 from ..mixins.incremental_id_mixin import IncrementalIDMixin
 from ..mixins.timestamp_mixin import TimestampMixin
@@ -13,3 +16,9 @@ class Sale(IncrementalIDMixin, TimestampMixin, Base):
 
     total_amount = Column(Numeric(14,2), nullable=False)
     platform_id = Column(Integer, ForeignKey("platforms.id"), nullable=False)
+    
+    sale_date = Column(DateTime, default=datetime.now(timezone.utc))
+    
+    items = relationship("SaleItem", back_populates="sale")
+    platform = relationship("Platform", back_populates="sales")
+

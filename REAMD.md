@@ -39,10 +39,15 @@ The Admin Dashboard API enables admin users to:
 
 ### Inventory Management
 
-- View current inventory status
-- Receive alerts for low stock items
-- Update stock levels
-- Track inventory changes over time
+- View current inventory status such as quantity changed like +100/-100, quantity before and quantity after. Threshold level after which it will show the alert levels and the reason for a certain inventory change
+- Receive alerts for low stock items in the form of boolean
+- Update stock levels by changing the quantity such as +100 (adding) or -100 (removing)
+- Track inventory changes over time by showing complete history in the inventory
+
+### Order Placement
+
+- place orders based on platform, products and its quantities
+- changes reflects the inventory levels
 
 ### Sales and Revenue Analytics
 
