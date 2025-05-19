@@ -1,101 +1,210 @@
 from sqlalchemy.orm import Session
-from app.models import Base, Product, Inventory, Sale, SaleItem, Platform
-from ..db.database import engine, SessionLocal
-import logging
-from datetime import datetime, timedelta
-import random
+from app.models import Product, Inventory, Category, Platform
+from ..controllers.order_controller import create_order
+from ..schemas.sale_item_schema import SaleIn, SaleItemIn
 from decimal import Decimal
+from ..db.database import SessionLocal 
+from sqlalchemy.exc import IntegrityError
+import random
+from sqlalchemy import select
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import func
 
-logger = logging.getLogger(__name__)
+def seed_categories():
+    db: Session = SessionLocal()
+    categories = [
+        {"name": "Electronics", "sku": "electronics-001"},
+        {"name": "Fashion", "sku": "fashion-002"},
+        {"name": "Home & Kitchen", "sku": "home-kitchen-003"},
+        {"name": "Health & Personal Care", "sku": "health-care-004"},
+        {"name": "Sports & Outdoors", "sku": "sports-outdoors-005"},
+        {"name": "Books", "sku": "books-006"},
+        {"name": "Toys & Games", "sku": "toys-games-007"},
+        {"name": "Automotive", "sku": "automotive-008"},
+        {"name": "Beauty", "sku": "beauty-009"},
+        {"name": "Office Supplies", "sku": "office-supplies-010"}
+    ]
 
-def seed_sales_data():
-    db = SessionLocal()
-    try:
-        if db.query(Sale).count() > 0:
-            return False 
-        
-        products = db.query(Product).all()
-        platforms = db.query(Platform).all()
-        
-        for i in range(50): 
-            sale_date = datetime.utcnow() - timedelta(days=random.randint(0, 365))
-            
-            sale = Sale(
-                total_amount=0, 
-                platform_id=random.choice(platforms).id,
-                sale_date=sale_date,
-                created_at=sale_date,
-                updated_at=sale_date
+
+    for cat in categories:
+        existing = db.query(Category).filter_by(name=cat["name"]).first()
+        if not existing:
+            try:
+                new_category = Category(**cat)
+                db.add(new_category)
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                print(f"Category {cat['name']} already exists. Skipping.")
+            except Exception as e:
+                db.rollback()
+                print(f"Error adding {cat['name']}: {e}")
+    db.close()
+
+def seed_products():
+    db: Session = SessionLocal()
+
+    categories = db.query(Category).all()
+    if not categories:
+        print("No categories found. Skipping product seeding.")
+        return
+
+    product_names = [
+        f"Product {i}" for i in range(1, 51)
+    ]
+
+    for i, name in enumerate(product_names):
+        sku = f"{name.lower().replace(' ', '-')}-{random.randint(1000,9999)}"
+        price = Decimal(f"{random.randint(100, 10000) / 100:.2f}")
+        description = f"Description for {name}"
+        category = random.choice(categories)
+
+        existing_product = db.query(Product).filter_by(sku=sku).first()
+        if existing_product:
+            continue
+
+        try:
+            product = Product(
+                name=name,
+                sku=sku,
+                price=price,
+                published=bool(random.getrandbits(1)),
+                description=description,
+                category_id=category.id
             )
-            db.add(sale)
-            db.flush() 
-            
-            total_amount = Decimal('0')
-            for _ in range(random.randint(1, 5)):
-                product = random.choice(products)
-                quantity = random.randint(1, 10)
-                price = product.price
-                item_total = price * quantity
-                
-                db.add(SaleItem(
-                    product_id=product.id,
-                    sales_id=sale.id,
-                    quantity=quantity,
-                    per_item_price=price,
-                    total_price=item_total
-                ))
-                total_amount += item_total
-            
-            sale.total_amount = total_amount
+            db.add(product)
             db.commit()
-        
-        return True
-    except Exception as e:
-        db.rollback()
-        raise
+        except IntegrityError:
+            db.rollback()
+        except Exception as e:
+            db.rollback()
+            print(f"Error adding product {name}: {e}")
 
-def seed_initial_data():
-    db = SessionLocal()
-    try:
-        if db.query(Product).count() > 0:
-            logger.info("Data already seeded - skipping")
-            return False
+    db.close()
+    
+    
+def seed_inventory_history():
+    db: Session = SessionLocal()
+    products = db.query(Product).all()
 
-        logger.info("Seeding initial data...")
-        
-        products = [
-            Product(name="Premium Headphones", sku="PH-100", price=199.99),
-            Product(name="Wireless Mouse", sku="WM-200", price=29.99),
-            Product(name="Mechanical Keyboard", sku="MK-300", price=129.99)
-        ]
-        db.add_all(products)
-        db.commit()
+    if not products:
+        print("No products found. Skipping inventory seeding.")
+        return
 
-        inventories = [
-            Inventory(
-                product_id=products[0].id,
-                quantity_before=0,
-                quantity_after=100,
-                threshold=10,
-                reason="Initial stock"
-            ),
-            Inventory(
-                product_id=products[1].id,
-                quantity_before=0,
-                quantity_after=200,
-                threshold=20,
-                reason="Initial stock"
+    for product in products:
+        last_inventory = (
+            db.query(Inventory)
+            .filter(Inventory.product_id == product.id)
+            .order_by(Inventory.created_at.desc())
+            .first()
+        )
+
+        quantity_before = last_inventory.quantity_after if last_inventory else Decimal(0)
+        quantity_changed = Decimal(random.randint(5, 50))
+        quantity_after = quantity_before + quantity_changed
+        threshold = Decimal(random.choice([50, 75, 100]))
+        reason = f"Initial stock added for {product.name}"
+
+        try:
+            inventory = Inventory(
+                product_id=product.id,
+                quantity_before=quantity_before,
+                quantity_after=quantity_after,
+                quantity_changed=quantity_changed,
+                threshold=threshold,
+                reason=reason,
+                created_at=datetime.utcnow()
             )
-        ]
-        db.add_all(inventories)
-        db.commit()
+            db.add(inventory)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+        except Exception as e:
+            db.rollback()
+            print(f"Error adding inventory for {product.name}: {e}")
 
-        logger.info("Data seeding completed successfully")
-        return True
+    db.close()
+    
+    
+def seed_platforms():
+    db: Session = SessionLocal()
+    platforms = [
+        "Amazon", "Walmart", "Alibaba", "eBay", "Etsy",
+        "Flipkart", "AliExpress", "Target", "Rakuten", "BigCommerce"
+    ]
 
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Data seeding failed: {str(e)}")
-        raise
-    finally:
-        db.close()
+    for name in platforms:
+        existing = db.query(Platform).filter(func.lower(Platform.name) == func.lower(name)).first()
+        if existing:
+            print(f"Platform {name} already exists. Skipping.")
+            continue
+        try:
+            platform = Platform(name=name)
+            db.add(platform)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+        except Exception as e:
+            db.rollback()
+            print(f"Error creating platform {name}: {e}")
+
+    db.close()
+    
+def seed_orders():
+    db: Session = SessionLocal()
+
+    products = db.execute(select(Product)).scalars().all()
+    if not products:
+        print("No products found in DB. Skipping order seeding.")
+        return
+
+    platforms = db.execute(select(Platform)).scalars().all()
+    if not platforms:
+        print("No platforms found in DB. Skipping order seeding.")
+        return
+
+    for _ in range(50):
+        product = random.choice(products)
+        platform = random.choice(platforms)
+
+        inventory = db.execute(
+            select(Product)
+            .filter(Product.id == product.id)
+            .join(Product.inventories)
+            .order_by(Product.inventories.property.mapper.class_.created_at.desc())
+        ).scalars().first()
+
+        if not product.inventories:
+            print(f"Skipping product {product.id} due to missing inventory")
+            continue
+
+        latest_inventory = product.inventories[-1]
+        max_qty = int(latest_inventory.quantity_after)
+
+        if max_qty <= 0:
+            print(f"Skipping product {product.id} due to insufficient stock")
+            continue
+
+        quantity = random.randint(1, min(5, max_qty))
+
+        days_ago = random.randint(1, 365)
+        sale_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+
+        order_data = SaleIn(
+            platform_id=platform.id,
+            sale_date=sale_date,
+            items=[
+                SaleItemIn(
+                    product_id=product.id,
+                    quantity=quantity
+                )
+            ]
+        )
+
+        try:
+            create_order(db, order_data)
+            print(f"Order placed: product={product.name} platform={platform.name} quantity={quantity}")
+        except Exception as e:
+            print(f"Failed to create order: {e}")
+    
+    db.close()

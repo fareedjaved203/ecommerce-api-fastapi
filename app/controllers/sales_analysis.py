@@ -7,12 +7,7 @@ from ..models.category_model import Category
 from ..models.sale_model import Sale
 from ..models.sale_item_model import SaleItem
 from ..models.product_model import Product
-from typing import List, Tuple
-from datetime import datetime
-from decimal import Decimal
-from typing import List, Tuple, Dict
-from sqlalchemy import func
-from sqlalchemy.orm import joinedload
+from typing import List, Tuple, Dict, Optional
 
 def get_revenue(start_date: datetime, end_date: datetime) -> Decimal:
     with SessionLocal() as session:
@@ -72,13 +67,32 @@ def get_revenue_for_periods(periods: List[Tuple[datetime, datetime]]) -> List[De
 
 def get_revenue_for_categories_periods(
     categories: List[str], 
-    periods: List[Tuple[datetime, datetime]]
+    periods: Optional[List[Tuple[Optional[datetime], Optional[datetime]]]] = None
 ) -> List[Dict[str, Decimal]]:
     results = []
+
     with SessionLocal() as session:
+        if not periods:
+            query = (
+                session.query(
+                    Category.name.label("category_name"),
+                    func.sum(SaleItem.total_price).label("revenue")
+                )
+                .join(Product, Product.category_id == Category.id)
+                .join(SaleItem, SaleItem.product_id == Product.id)
+                .join(Sale, Sale.id == SaleItem.sales_id)
+                .filter(Category.name.in_(categories))
+                .group_by(Category.name)
+            )
+            total_revenue = {row.category_name: row.revenue or Decimal("0.00") for row in query.all()}
+            for cat in categories:
+                total_revenue.setdefault(cat, Decimal("0.00"))
+            results.append(total_revenue)
+            return results
+
         for start_date, end_date in periods:
-            if start_date >= end_date:
-                raise ValueError("start_date must be before end_date")
+            if start_date is not None and end_date is not None and start_date >= end_date:
+                raise ValueError("start_date must be before end_date when both are provided")
 
             query = (
                 session.query(
@@ -88,18 +102,21 @@ def get_revenue_for_categories_periods(
                 .join(Product, Product.category_id == Category.id)
                 .join(SaleItem, SaleItem.product_id == Product.id)
                 .join(Sale, Sale.id == SaleItem.sales_id)
-                .filter(
-                    Sale.sale_date >= start_date,
-                    Sale.sale_date < end_date,
-                    Category.name.in_(categories)
-                )
-                .group_by(Category.name)
+                .filter(Category.name.in_(categories))
             )
+
+            # Apply date filters only if the dates are not None
+            if start_date is not None:
+                query = query.filter(Sale.sale_date >= start_date)
+            if end_date is not None:
+                query = query.filter(Sale.sale_date < end_date)
+
+            query = query.group_by(Category.name)
 
             period_revenue = {row.category_name: row.revenue or Decimal("0.00") for row in query.all()}
             for cat in categories:
                 period_revenue.setdefault(cat, Decimal("0.00"))
-
             results.append(period_revenue)
+
     return results
 

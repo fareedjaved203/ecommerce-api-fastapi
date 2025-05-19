@@ -32,7 +32,7 @@ def annual():
     return get_annual_revenue()
 
 @router.get("/custom", response_model=Decimal)
-def custom(
+def custom_date_range(
     start_date: datetime = Query(..., description="Start datetime in ISO format"),
     end_date: datetime = Query(..., description="End datetime in ISO format"),
 ):
@@ -42,7 +42,7 @@ def custom(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/compare", response_model=List[Decimal])
-def compare_revenues_by_dates(payload: CompareRevenueIn):
+def compare_revenues_by_multiple_dates(payload: CompareRevenueIn):
     try:
         periods = [(p.start_date, p.end_date) for p in payload.periods]
         results = get_revenue_for_periods(periods)
@@ -51,9 +51,13 @@ def compare_revenues_by_dates(payload: CompareRevenueIn):
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.post("/compare-by-category", response_model=List[Dict[str, Decimal]])
-def compare_revenue_by_category(payload: CompareRevenueByCategoryIn):
+def compare_revenue_by_multiple_category(payload: CompareRevenueByCategoryIn):
     try:
         periods = [(p.start_date, p.end_date) for p in payload.periods]
+        
+        if not payload.periods:
+            raise HTTPException(status_code=400, detail="At least one period must be provided")
+            
         results = get_revenue_for_categories_periods(payload.categories, periods)
         return results
     except ValueError as e:

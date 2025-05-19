@@ -38,8 +38,8 @@ class RevenueOut(BaseModel):
     amount: Decimal
     
 class Period(BaseModel):
-    start_date: datetime
-    end_date: datetime
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
 class CompareRevenueIn(BaseModel):
     periods: List[Period]

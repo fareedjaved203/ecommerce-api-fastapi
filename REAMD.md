@@ -166,7 +166,7 @@ Base URL: `/`
   Create or update inventory for a specific product.
 
 - **GET** `/api/v1/inventory/product/{product_id}`  
-  Retrieve complete inventory history for a product with low stock alerts(boolean).
+  Retrieve complete inventory history, with each interaction, for a product with low stock alerts(boolean).
 
 ---
 
@@ -174,6 +174,7 @@ Base URL: `/`
 
 - **POST** `/api/v1/orders/`  
   Place a new order.
+  Stock changes are reflected in the inventory as well.
 
 ---
 

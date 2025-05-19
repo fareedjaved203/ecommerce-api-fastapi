@@ -6,6 +6,8 @@ from .routers.inventory_router import router as inventory_router
 from .routers.order_router import router as order_router
 from .routers.sales_analysis_router import router as sales_router
 
+from .core.seeder import seed_categories, seed_products, seed_inventory_history, seed_platforms, seed_orders
+
 from .db.database import engine
 from app import models
 
@@ -18,6 +20,14 @@ app.include_router(platform_router, prefix="/api/v1")
 app.include_router(inventory_router, prefix="/api/v1")
 app.include_router(order_router, prefix="/api/v1")
 app.include_router(sales_router, prefix="/api/v1")
+
+@app.on_event("startup")
+def startup_event():
+    seed_categories()
+    seed_products()
+    seed_inventory_history()
+    seed_platforms()
+    seed_orders()
 
 @app.get("/")
 def root():
