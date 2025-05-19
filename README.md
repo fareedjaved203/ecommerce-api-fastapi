@@ -58,7 +58,6 @@ The Admin Dashboard API enables admin users to:
 - Retrieve sales data by product, category, or platform
 - Filter sales by day, week, month, year, or a custom range
 - Compare revenue across time periods and categories
-- Identify top and bottom-performing products
 
 ## Getting Started
 
