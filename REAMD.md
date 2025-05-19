@@ -13,6 +13,10 @@ The Admin Dashboard API enables admin users to:
 - Monitor and manage inventory levels, including stock changes and low stock alerts
 - Identify best-selling and least-selling products over time
 
+## ERD Diagram with Explanation
+
+![alt text](image.png)
+
 ## Tech Stack
 
 - Python 3.12
@@ -100,6 +104,11 @@ alembic upgrade head
 ```
 uvicorn app.main:app --port 5000
 ```
+
+## Seed
+
+- All the necessary data populates when the server starts
+
 ## API Endpoints
 
 Base URL: `/`
